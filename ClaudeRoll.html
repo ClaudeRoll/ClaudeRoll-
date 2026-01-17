@@ -1,0 +1,1990 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ClaudeRoll - Solana Casino Wheel</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Arial', sans-serif;
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            background: #2a2a4a;
+        }
+
+        #casino-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        .blur-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            backdrop-filter: blur(4px);
+            z-index: 2;
+            background: radial-gradient(circle at center, rgba(26,26,46,0.2), rgba(26,26,46,0.5));
+            pointer-events: none;
+        }
+
+        .container {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            position: relative;
+            z-index: 10;
+        }
+
+        .main-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            padding: 40px;
+            padding-top: 80px;
+            position: relative;
+        }
+
+        .timer {
+            font-size: 56px;
+            color: #ffd700;
+            text-shadow: 
+                0 0 10px rgba(255,215,0,0.8),
+                0 0 20px rgba(255,215,0,0.5),
+                3px 3px 0 rgba(0,0,0,0.5);
+            margin-bottom: 15px;
+            font-weight: bold;
+            letter-spacing: 3px;
+            font-family: Impact, sans-serif;
+            position: relative;
+            z-index: 20;
+        }
+
+        .status {
+            font-size: 24px;
+            color: #fff;
+            margin-bottom: 30px;
+            text-transform: uppercase;
+            letter-spacing: 4px;
+            text-shadow: 0 0 10px rgba(255,255,255,0.5), 2px 2px 0 rgba(0,0,0,0.8);
+            font-weight: bold;
+            position: relative;
+            z-index: 20;
+            min-height: 40px;
+        }
+
+        /* Contract Address Input */
+        .contract-input-container {
+            background: linear-gradient(135deg, rgba(42,42,58,0.95), rgba(26,26,42,0.95));
+            padding: 25px;
+            border-radius: 15px;
+            border: 3px solid rgba(255,215,0,0.5);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.8);
+            margin-bottom: 30px;
+            max-width: 700px;
+            z-index: 20;
+            position: relative;
+        }
+
+        .contract-input-container.hidden {
+            display: none;
+        }
+
+        .contract-input-label {
+            font-size: 18px;
+            color: #ffd700;
+            font-weight: bold;
+            margin-bottom: 15px;
+            text-align: center;
+            letter-spacing: 1px;
+        }
+
+        .contract-input {
+            width: 100%;
+            padding: 15px;
+            font-size: 16px;
+            background: rgba(26,26,42,0.8);
+            border: 2px solid rgba(255,215,0,0.3);
+            border-radius: 8px;
+            color: #fff;
+            font-family: 'Courier New', monospace;
+            margin-bottom: 15px;
+            box-sizing: border-box;
+        }
+
+        .contract-input:focus {
+            outline: none;
+            border-color: #ffd700;
+            box-shadow: 0 0 15px rgba(255,215,0,0.3);
+        }
+
+        .connect-btn {
+            width: 100%;
+            padding: 15px;
+            font-size: 18px;
+            font-weight: bold;
+            background: linear-gradient(135deg, #ffd700, #ffed4e);
+            color: #1a1a2a;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            transition: all 0.3s ease;
+        }
+
+        .connect-btn:hover {
+            background: linear-gradient(135deg, #ffed4e, #ffd700);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(255,215,0,0.4);
+        }
+
+        .connect-btn:active {
+            transform: translateY(0);
+        }
+
+        .connect-btn:disabled {
+            background: #666;
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+
+        .connection-status {
+            text-align: center;
+            margin-top: 15px;
+            font-size: 14px;
+            font-weight: bold;
+            color: #fff;
+        }
+
+        .connection-status.connected {
+            color: #00ff00;
+        }
+
+        .connection-status.error {
+            color: #ff4444;
+        }
+
+        /* BIG COUNTDOWN IN CENTER */
+        .countdown-center {
+            font-size: 250px;
+            font-weight: bold;
+            text-shadow: 
+                0 0 80px currentColor,
+                0 0 160px currentColor,
+                10px 10px 0 rgba(0,0,0,0.7);
+            font-family: Impact, sans-serif;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 100;
+            animation: pulse 1s ease-in-out;
+            text-align: center;
+        }
+
+        @keyframes pulse {
+            0% { transform: translate(-50%, -50%) scale(0.3); opacity: 0; }
+            50% { transform: translate(-50%, -50%) scale(1.15); opacity: 1; }
+            100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+        }
+
+        .countdown-center.num3 { color: #ffd700; }
+        .countdown-center.num2 { color: #7fff00; }
+        .countdown-center.num1 { color: #00ff00; }
+
+        .wheel-container {
+            position: relative;
+            width: 650px;
+            height: 650px;
+            filter: drop-shadow(0 20px 40px rgba(0,0,0,0.8));
+            z-index: 5;
+            transition: transform 0.5s ease;
+            transform: scale(1);
+            margin: 0 auto;
+        }
+
+        .wheel-container.spinning {
+            z-index: 16;
+            transform: scale(1.15);
+        }
+
+        .wheel-3d-frame {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 680px;
+            height: 680px;
+            background: linear-gradient(135deg, #2a2a3a 0%, #1a1a2a 50%, #0a0a1a 100%);
+            border-radius: 50%;
+            box-shadow: inset 0 0 30px rgba(0,0,0,0.8), 0 10px 50px rgba(0,0,0,0.9);
+            border: 8px solid #1a1a2a;
+            z-index: 5;
+        }
+
+        .wheel-3d-inner {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 620px;
+            height: 620px;
+            background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.1), transparent 50%), linear-gradient(180deg, #2a2a3a 0%, #1a1a2a 100%);
+            border-radius: 50%;
+            box-shadow: inset 0 -10px 30px rgba(0,0,0,0.5);
+            z-index: 6;
+        }
+
+        .wheel {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 610px;
+            height: 610px;
+            border-radius: 50%;
+            transition: transform 4s cubic-bezier(0.17, 0.67, 0.12, 0.99);
+            box-shadow: 0 0 30px rgba(255,215,0,0.3);
+            overflow: visible;
+            transform-origin: center center;
+            margin-left: -290px;
+            margin-top: -290px;
+            z-index: 8;
+            transform: rotate(0deg);
+        }
+
+        .wheel svg {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            filter: drop-shadow(0 0 20px rgba(255,182,193,0.3));
+        }
+
+        .wheel-labels {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        .pointer {
+            position: absolute;
+            top: -50px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 30px solid transparent;
+            border-right: 30px solid transparent;
+            border-top: 60px solid #ffb6c1;
+            filter: drop-shadow(0 4px 0 rgba(0,0,0,0.3)) drop-shadow(0 0 10px rgba(255,182,193,0.8));
+            z-index: 100;
+        }
+
+        .center-circle {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 140px;
+            height: 140px;
+            background: #ff9dc6;
+            border-radius: 50%;
+            box-shadow: 0 4px 0 #d87ba8, 0 8px 20px rgba(0,0,0,0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            font-weight: bold;
+            color: #1a1d3a;
+            z-index: 10;
+            border: 5px solid #c5d8ff;
+            font-family: Impact, sans-serif;
+        }
+
+        .wheel-segment-content {
+            position: absolute;
+            color: white;
+            font-weight: bold;
+            text-shadow: 1px 1px 0 rgba(0,0,0,0.8), 2px 2px 0 rgba(0,0,0,0.5);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+        }
+
+        .segment-wallet { font-size: 13px; letter-spacing: 1px; }
+        .segment-percentage { font-size: 16px; color: #fff; }
+
+        .participants {
+            margin-top: 40px;
+            display: grid;
+            grid-template-columns: repeat(10, 1fr);
+            gap: 10px;
+            max-width: 1400px;
+            min-height: 120px;
+            position: relative;
+            z-index: 15;
+            transition: opacity 0.5s ease, z-index 0s 0.5s;
+            opacity: 1;
+            padding-right: 200px;
+        }
+
+        .participants.faded { 
+            opacity: 0.3;
+            z-index: 5;
+            transition: opacity 0.5s ease, z-index 0s;
+        }
+
+        .participant {
+            background: linear-gradient(135deg, rgba(42,42,58,0.9), rgba(26,26,42,0.9));
+            padding: 10px;
+            color: #fff;
+            font-size: 11px;
+            border: 2px solid rgba(255,215,0,0.3);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.6);
+        }
+
+        .participant-wallet { font-weight: bold; margin-bottom: 5px; color: #ffd700; font-size: 10px; }
+        .participant-amount { color: #ff6b9d; font-size: 10px; font-weight: bold; }
+        .participant-chance { color: #4ade80; font-size: 12px; font-weight: bold; margin-top: 5px; }
+
+        .additional-players {
+            position: absolute;
+            right: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 180px;
+            background: linear-gradient(135deg, rgba(42,42,58,0.9), rgba(26,26,42,0.9));
+            padding: 15px;
+            color: #fff;
+            border: 2px solid rgba(255,215,0,0.5);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.6);
+            text-align: center;
+            z-index: 15;
+        }
+
+        .additional-players-title {
+            font-weight: bold;
+            color: #ffd700;
+            font-size: 11px;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .additional-players-count {
+            font-size: 24px;
+            font-weight: bold;
+            color: #4ade80;
+            margin-bottom: 5px;
+        }
+
+        .additional-players-amount {
+            font-size: 10px;
+            color: #ff6b9d;
+            font-weight: bold;
+        }
+
+        /* Pop animation for new participants */
+        @keyframes participantPop {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.15); }
+            100% { transform: scale(1); }
+        }
+
+        .participant.new-entry {
+            animation: participantPop 0.4s ease-out;
+        }
+
+        /* Pop animation for wheel segments - smooth glow fade */
+        @keyframes wheelSegmentGlowFade {
+            0% { 
+                opacity: 1;
+            }
+            100% { 
+                opacity: 0;
+            }
+        }
+
+        .wheel svg g.new-segment {
+            transform-origin: 200px 200px;
+        }
+        
+        .wheel svg g.new-segment.fading {
+            animation: wheelSegmentGlowFade 0.3s ease-out forwards;
+        }
+
+        .leaderboard {
+            position: absolute;
+            right: 30px;
+            top: 30px;
+            width: 240px;
+            background: linear-gradient(135deg, rgba(42,42,58,0.95), rgba(26,26,42,0.95));
+            padding: 15px;
+            color: #fff;
+            border: 3px solid rgba(255,215,0,0.4);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.8);
+            z-index: 20;
+            transition: opacity 0.5s ease, z-index 0s 0.5s;
+            opacity: 1;
+        }
+
+        .leaderboard.faded { 
+            opacity: 0.3;
+            z-index: 5;
+            transition: opacity 0.5s ease, z-index 0s;
+        }
+
+        .payout-info {
+            background: rgba(255,215,0,0.15);
+            padding: 10px;
+            margin-bottom: 12px;
+            border: 2px solid rgba(255,215,0,0.6);
+            text-align: center;
+        }
+
+        .payout-timer {
+            font-size: 16px;
+            color: #ffd700;
+            font-weight: bold;
+            margin-bottom: 4px;
+        }
+
+        .payout-pool { font-size: 11px; color: #fff; }
+        .payout-pool-amount { color: #4ade80; font-weight: bold; font-size: 12px; }
+
+        .leaderboard-title {
+            font-size: 14px;
+            margin-bottom: 12px;
+            text-align: center;
+            color: #ffd700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: bold;
+            white-space: nowrap;
+        }
+
+        .leaderboard-item {
+            background: rgba(42,42,58,0.6);
+            padding: 8px;
+            margin-bottom: 6px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border: 2px solid rgba(255,215,0,0.3);
+        }
+
+        .leaderboard-rank { font-size: 18px; font-weight: bold; color: #ffd700; margin-right: 8px; }
+        .leaderboard-wallet { flex: 1; font-size: 11px; }
+        .leaderboard-wins { background: linear-gradient(135deg, #ffd700, #ffed4e); color: #1a1a2a; padding: 3px 8px; font-weight: bold; font-size: 11px; }
+
+        .winner-announcement {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0);
+            background: linear-gradient(135deg, rgba(255,215,0,0.98), rgba(255,165,0,0.98));
+            padding: 60px 80px;
+            box-shadow: 
+                0 0 0 8px rgba(255,215,0,0.3),
+                0 0 60px rgba(255,215,0,0.8),
+                0 20px 80px rgba(0,0,0,0.6);
+            z-index: 1000;
+            text-align: center;
+            transition: transform 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            border: 6px solid #fff;
+            max-width: 800px;
+            border-radius: 20px;
+        }
+
+        .winner-announcement.show { 
+            transform: translate(-50%, -50%) scale(1);
+            animation: winnerPulse 0.5s ease-out;
+        }
+        
+        @keyframes winnerPulse {
+            0% { transform: translate(-50%, -50%) scale(0); }
+            50% { transform: translate(-50%, -50%) scale(1.1); }
+            100% { transform: translate(-50%, -50%) scale(1); }
+        }
+        
+        .winner-title { 
+            font-size: 64px; 
+            color: #1a1a2a; 
+            margin-bottom: 30px; 
+            text-transform: uppercase; 
+            font-weight: bold; 
+            font-family: Impact, sans-serif;
+            text-shadow: 3px 3px 0 rgba(255,255,255,0.5);
+            letter-spacing: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            white-space: nowrap;
+        }
+        
+        .winner-info {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .winner-wallet { 
+            font-size: 28px; 
+            color: #1a1a2a; 
+            font-weight: bold;
+            background: rgba(255,255,255,0.3);
+            padding: 15px 25px;
+            border-radius: 10px;
+            border: 3px solid rgba(0,0,0,0.2);
+            font-family: 'Courier New', monospace;
+            letter-spacing: 2px;
+        }
+        
+        .winner-percentage {
+            font-size: 32px;
+            color: #1a1a2a;
+            font-weight: bold;
+            background: rgba(76,222,128,0.3);
+            padding: 15px 25px;
+            border-radius: 10px;
+            border: 3px solid rgba(0,0,0,0.2);
+            font-family: Impact, sans-serif;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="casino-bg"></canvas>
+    <div class="blur-overlay"></div>
+    
+    <div class="container">
+        <div class="main-area">
+            <div class="timer" id="timer">NEXT SPIN: 20s</div>
+            <div class="status" id="status">COLLECTING ENTRIES...</div>
+            
+            <!-- Contract Address Input -->
+            <div class="contract-input-container" id="contract-container">
+                <div class="contract-input-label">🚀 PASTE CONTRACT ADDRESS TO START:</div>
+                <input 
+                    type="text" 
+                    id="contract-input" 
+                    class="contract-input" 
+                    placeholder="Enter pump.fun token address..."
+                    maxlength="44"
+                />
+                <button id="connect-btn" class="connect-btn">CONNECT & START</button>
+                <div id="connection-status" class="connection-status">⚪ Not Connected</div>
+            </div>
+            
+            <div class="wheel-container">
+                <div class="wheel-3d-frame"></div>
+                <div class="wheel-3d-inner"></div>
+                <div class="pointer"></div>
+                <div class="wheel" id="wheel"></div>
+                <div class="center-circle">SPIN</div>
+            </div>
+
+            <div class="participants" id="participants"></div>
+        </div>
+
+        <div class="leaderboard">
+            <div class="payout-info">
+                <div class="payout-timer" id="payout-timer">PAYOUT IN: 15:00</div>
+                <div class="payout-pool">Prize Pool: <span class="payout-pool-amount" id="pool-amount">0.0000 SOL</span></div>
+            </div>
+            <div class="leaderboard-title">🏆 LEADERBOARD 🏆</div>
+            <div id="leaderboard-list"></div>
+        </div>
+    </div>
+
+    <div class="winner-announcement" id="winner-announcement">
+        <div class="winner-title">
+            <span>🎉</span>
+            <span>WINNER!</span>
+            <span>🎉</span>
+        </div>
+        <div class="winner-info">
+            <div class="winner-wallet" id="winner-wallet"></div>
+            <div class="winner-percentage" id="winner-percentage"></div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        // Three.js background (simplified for space)
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x0a0a1a); // Very dark background for contrast
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('casino-bg'), antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        camera.position.set(0, 2, 18);
+        
+        // Rainbow road setup
+        const roadSegments = [];
+        const roadColors = [
+            0xff0000, // Red
+            0xff7700, // Orange
+            0xffff00, // Yellow
+            0x00ff00, // Green
+            0x0088ff, // Blue
+            0x8800ff, // Purple
+            0xff00ff  // Magenta
+        ];
+        
+        // Create multiple road segments
+        for (let i = 0; i < 30; i++) {
+            const roadSegmentGeo = new THREE.PlaneGeometry(20, 8);
+            const colorIndex = i % roadColors.length;
+            const roadSegmentMat = new THREE.MeshPhongMaterial({ 
+                color: roadColors[colorIndex],
+                emissive: roadColors[colorIndex],
+                emissiveIntensity: 0.3,
+                shininess: 100,
+                transparent: true,
+                opacity: 0.8,
+                side: THREE.DoubleSide
+            });
+            const roadSegment = new THREE.Mesh(roadSegmentGeo, roadSegmentMat);
+            roadSegment.rotation.x = -Math.PI / 2.3; // Slight angle for perspective
+            roadSegment.position.z = -i * 8 - 20;
+            roadSegment.position.y = -5;
+            
+            // Add glowing edges
+            const edgeGeo = new THREE.EdgesGeometry(roadSegmentGeo);
+            const edgeMat = new THREE.LineBasicMaterial({ 
+                color: 0xffffff,
+                linewidth: 2,
+                transparent: true,
+                opacity: 0.6
+            });
+            const edges = new THREE.LineSegments(edgeGeo, edgeMat);
+            roadSegment.add(edges);
+            
+            scene.add(roadSegment);
+            roadSegments.push(roadSegment);
+        }
+        
+        // Side barriers/rails
+        const barriers = [];
+        for (let i = 0; i < 30; i++) {
+            // Left barrier
+            const leftBarrierGeo = new THREE.BoxGeometry(0.5, 1.5, 8);
+            const barrierMat = new THREE.MeshPhongMaterial({ 
+                color: 0xffffff,
+                emissive: 0x4444ff,
+                emissiveIntensity: 0.5,
+                shininess: 100,
+                transparent: true,
+                opacity: 0.6
+            });
+            const leftBarrier = new THREE.Mesh(leftBarrierGeo, barrierMat);
+            leftBarrier.position.set(-10.5, -4, -i * 8 - 20);
+            scene.add(leftBarrier);
+            barriers.push(leftBarrier);
+            
+            // Right barrier
+            const rightBarrier = leftBarrier.clone();
+            rightBarrier.position.set(10.5, -4, -i * 8 - 20);
+            scene.add(rightBarrier);
+            barriers.push(rightBarrier);
+        }
+        
+        // Yellow spotlight circle behind the wheel
+        const spotlightCircleGeo = new THREE.CircleGeometry(8, 64);
+        const spotlightCircleMat = new THREE.MeshBasicMaterial({ 
+            color: 0xFFD700,
+            transparent: true,
+            opacity: 0.4,
+            side: THREE.DoubleSide
+        });
+        const spotlightCircle = new THREE.Mesh(spotlightCircleGeo, spotlightCircleMat);
+        spotlightCircle.position.set(0, 0, -0.5);
+        scene.add(spotlightCircle);
+        
+        // Faint glowing rainbow stars across entire background
+        const stars = [];
+        const starColors = [
+            0xff0000, // Red
+            0xff7700, // Orange
+            0xffff00, // Yellow
+            0x00ff00, // Green
+            0x0088ff, // Blue
+            0x8800ff, // Purple
+            0xff00ff  // Magenta
+        ];
+        
+        // Stars spread across all vertical space
+        for (let i = 0; i < 150; i++) {
+            const starGeo = new THREE.SphereGeometry(0.2 + Math.random() * 0.3, 8, 8);
+            const colorIndex = Math.floor(Math.random() * starColors.length);
+            const starMat = new THREE.MeshBasicMaterial({ 
+                color: starColors[colorIndex],
+                transparent: true,
+                opacity: 0.3 + Math.random() * 0.3
+            });
+            const star = new THREE.Mesh(starGeo, starMat);
+            
+            // Position stars across ENTIRE vertical space including top
+            star.position.set(
+                (Math.random() - 0.5) * 100, // Wide spread horizontally
+                -10 + Math.random() * 40,    // Full vertical range (y: -10 to 30)
+                -20 - Math.random() * 80     // Depth variation
+            );
+            
+            // Store original opacity and position for animation
+            star.userData.baseOpacity = starMat.opacity;
+            star.userData.twinkleSpeed = 0.5 + Math.random() * 2;
+            star.userData.twinkleOffset = Math.random() * Math.PI * 2;
+            
+            scene.add(star);
+            stars.push(star);
+        }
+        
+        // Add some larger star bursts across full height
+        for (let i = 0; i < 30; i++) {
+            const burstGeo = new THREE.SphereGeometry(0.5 + Math.random() * 0.5, 6, 6);
+            const colorIndex = Math.floor(Math.random() * starColors.length);
+            const burstMat = new THREE.MeshBasicMaterial({ 
+                color: starColors[colorIndex],
+                transparent: true,
+                opacity: 0.2 + Math.random() * 0.2
+            });
+            const burst = new THREE.Mesh(burstGeo, burstMat);
+            
+            burst.position.set(
+                (Math.random() - 0.5) * 120,
+                -5 + Math.random() * 35,     // Full vertical spread
+                -30 - Math.random() * 70
+            );
+            
+            burst.userData.baseOpacity = burstMat.opacity;
+            burst.userData.twinkleSpeed = 0.3 + Math.random() * 1;
+            burst.userData.twinkleOffset = Math.random() * Math.PI * 2;
+            
+            scene.add(burst);
+            stars.push(burst);
+        }
+        
+        // Cohesive casino lighting
+        const ambientLight = new THREE.AmbientLight(0x4a3a5a, 2);
+        scene.add(ambientLight);
+        
+        // Main overhead warm lights
+        const pointLight1 = new THREE.PointLight(0xffd700, 3, 120);
+        pointLight1.position.set(0, 20, 0);
+        scene.add(pointLight1);
+        
+        // Accent lights from slot machines
+        const accentLight1 = new THREE.PointLight(0xff1493, 2, 60);
+        accentLight1.position.set(-10, 5, -8);
+        scene.add(accentLight1);
+        
+        const accentLight2 = new THREE.PointLight(0xff1493, 2, 60);
+        accentLight2.position.set(10, 5, -8);
+        scene.add(accentLight2);
+        
+        // Soft fill light
+        const fillLight = new THREE.DirectionalLight(0x8888ff, 0.5);
+        fillLight.position.set(0, 10, 20);
+        scene.add(fillLight);
+        
+        // Moving rainbow floor
+        const rainbowFloorSegments = [];
+        const rainbowColors = [
+            0xff0000, // Red
+            0xff7700, // Orange
+            0xffff00, // Yellow
+            0x00ff00, // Green
+            0x0088ff, // Blue
+            0x8800ff, // Purple
+            0xff00ff  // Magenta
+        ];
+        
+        // Create rainbow floor tiles that move
+        for (let z = 0; z < 20; z++) {
+            for (let x = -5; x <= 5; x++) {
+                const tileGeo = new THREE.PlaneGeometry(10, 10);
+                const colorIndex = (x + z) % rainbowColors.length;
+                const tileMat = new THREE.MeshPhongMaterial({ 
+                    color: rainbowColors[colorIndex],
+                    emissive: rainbowColors[colorIndex],
+                    emissiveIntensity: 0.4,
+                    shininess: 80,
+                    side: THREE.DoubleSide
+                });
+                const tile = new THREE.Mesh(tileGeo, tileMat);
+                tile.rotation.x = -Math.PI / 2;
+                tile.position.set(x * 10, -5, -z * 10 - 20);
+                scene.add(tile);
+                rainbowFloorSegments.push(tile);
+            }
+        }
+        
+        
+        // Create detailed slot machines
+        const slotMachines = [];
+        
+        function createSlotMachine(x, y, z, rotationY) {
+            const group = new THREE.Group();
+            
+            // Base platform
+            const baseGeo = new THREE.BoxGeometry(3.5, 0.4, 2.5);
+            const baseMat = new THREE.MeshPhongMaterial({ 
+                color: 0x1a1a2e,
+                emissive: 0x000000,
+                shininess: 50
+            });
+            const base = new THREE.Mesh(baseGeo, baseMat);
+            base.position.y = -2;
+            group.add(base);
+            
+            // Main body (bigger)
+            const bodyGeometry = new THREE.BoxGeometry(3, 5, 2.5);
+            const bodyMaterial = new THREE.MeshPhongMaterial({ 
+                color: 0xff1493,
+                emissive: 0x000000,
+                shininess: 80,
+                specular: 0x666666
+            });
+            const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
+            group.add(body);
+            
+            // Body trim/border
+            const trimGeo = new THREE.BoxGeometry(3.1, 5.1, 2.6);
+            const trimMat = new THREE.MeshPhongMaterial({ 
+                color: 0xffd700,
+                emissive: 0x000000,
+                shininess: 100
+            });
+            const trim = new THREE.Mesh(trimGeo, trimMat);
+            trim.position.z = -0.05;
+            group.add(trim);
+            
+            // Screen
+            const screenGeometry = new THREE.BoxGeometry(2.4, 2, 0.15);
+            const screenMaterial = new THREE.MeshPhongMaterial({ 
+                color: 0x0a0a1a,
+                emissive: 0x4a4a8e,
+                emissiveIntensity: 0.7
+            });
+            const screen = new THREE.Mesh(screenGeometry, screenMaterial);
+            screen.position.set(0, 0.8, 1.28);
+            group.add(screen);
+            
+            // Screen frame
+            const screenFrameGeo = new THREE.BoxGeometry(2.6, 2.2, 0.1);
+            const screenFrameMat = new THREE.MeshPhongMaterial({ 
+                color: 0x333333,
+                emissive: 0x000000,
+                shininess: 60
+            });
+            const screenFrame = new THREE.Mesh(screenFrameGeo, screenFrameMat);
+            screenFrame.position.set(0, 0.8, 1.32);
+            group.add(screenFrame);
+            
+            // Spinning reels on screen
+            for (let i = -0.8; i <= 0.8; i += 0.8) {
+                const reelGeo = new THREE.BoxGeometry(0.6, 1.6, 0.05);
+                const reelMat = new THREE.MeshPhongMaterial({ 
+                    color: 0x8b4789,
+                    emissive: 0xff00ff,
+                    emissiveIntensity: 0.3
+                });
+                const reel = new THREE.Mesh(reelGeo, reelMat);
+                reel.position.set(i, 0.8, 1.35);
+                group.add(reel);
+            }
+            
+            // Button panel
+            const panelGeo = new THREE.BoxGeometry(2.6, 0.8, 0.3);
+            const panelMat = new THREE.MeshPhongMaterial({ 
+                color: 0x2a2a3a,
+                emissive: 0x000000,
+                shininess: 40
+            });
+            const panel = new THREE.Mesh(panelGeo, panelMat);
+            panel.position.set(0, -1.5, 1.3);
+            panel.rotation.x = -0.2;
+            group.add(panel);
+            
+            // Buttons on panel
+            for (let i = -1; i <= 1; i += 1) {
+                const buttonGeo = new THREE.CylinderGeometry(0.2, 0.2, 0.1, 16);
+                const buttonMat = new THREE.MeshPhongMaterial({ 
+                    color: [0xff0000, 0x00ff00, 0x0000ff][i + 1],
+                    emissive: [0xff0000, 0x00ff00, 0x0000ff][i + 1],
+                    emissiveIntensity: 0.5,
+                    shininess: 100
+                });
+                const button = new THREE.Mesh(buttonGeo, buttonMat);
+                button.position.set(i * 0.7, -1.5, 1.45);
+                button.rotation.x = Math.PI / 2;
+                group.add(button);
+            }
+            
+            // Coin slot
+            const coinSlotGeo = new THREE.BoxGeometry(0.3, 0.05, 0.2);
+            const coinSlotMat = new THREE.MeshPhongMaterial({ 
+                color: 0x000000,
+                emissive: 0x000000
+            });
+            const coinSlot = new THREE.Mesh(coinSlotGeo, coinSlotMat);
+            coinSlot.position.set(0, -0.5, 1.3);
+            group.add(coinSlot);
+            
+            // Top decoration/marquee
+            const topGeometry = new THREE.CylinderGeometry(1.2, 1.5, 0.8, 32);
+            const topMaterial = new THREE.MeshPhongMaterial({ 
+                color: 0xffd700,
+                shininess: 100,
+                emissive: 0xffd700,
+                emissiveIntensity: 0.3
+            });
+            const top = new THREE.Mesh(topGeometry, topMaterial);
+            top.position.set(0, 2.9, 0);
+            group.add(top);
+            
+            // Top crown
+            const crownGeo = new THREE.ConeGeometry(0.8, 0.6, 6);
+            const crownMat = new THREE.MeshPhongMaterial({ 
+                color: 0xff1493,
+                emissive: 0x000000,
+                shininess: 100
+            });
+            const crown = new THREE.Mesh(crownGeo, crownMat);
+            crown.position.set(0, 3.6, 0);
+            group.add(crown);
+            
+            // Lever arm
+            const leverStick = new THREE.CylinderGeometry(0.08, 0.08, 1.5, 16);
+            const leverMaterial = new THREE.MeshPhongMaterial({ 
+                color: 0xff4444,
+                emissive: 0x000000,
+                shininess: 100
+            });
+            const lever = new THREE.Mesh(leverStick, leverMaterial);
+            lever.position.set(1.8, 0.5, 0);
+            lever.rotation.z = -Math.PI / 4;
+            group.add(lever);
+            
+            // Lever ball handle
+            const ballGeometry = new THREE.SphereGeometry(0.25, 16, 16);
+            const ballMat = new THREE.MeshPhongMaterial({ 
+                color: 0xff0000,
+                emissive: 0x000000,
+                shininess: 100
+            });
+            const ball = new THREE.Mesh(ballGeometry, ballMat);
+            ball.position.set(2.4, -0.2, 0);
+            group.add(ball);
+            
+            // Payout tray
+            const trayGeo = new THREE.BoxGeometry(2, 0.3, 0.8);
+            const trayMat = new THREE.MeshPhongMaterial({ 
+                color: 0x444444,
+                emissive: 0x000000,
+                shininess: 60
+            });
+            const tray = new THREE.Mesh(trayGeo, trayMat);
+            tray.position.set(0, -2.3, 1.3);
+            tray.rotation.x = -0.3;
+            group.add(tray);
+            
+            group.position.set(x, y, z);
+            group.rotation.y = rotationY;
+            
+            return group;
+        }
+        
+        // Position bigger slot machines around the scene
+        slotMachines.push(createSlotMachine(-10, 0, -8, Math.PI / 6));
+        slotMachines.push(createSlotMachine(10, 0, -8, -Math.PI / 6));
+        slotMachines.push(createSlotMachine(-15, -0.5, -12, Math.PI / 4));
+        slotMachines.push(createSlotMachine(15, -0.5, -12, -Math.PI / 4));
+        slotMachines.push(createSlotMachine(0, -1, -16, 0));
+        
+        slotMachines.forEach(machine => scene.add(machine));
+        
+        // Animate slot machines and rainbow road
+        function animateBackground() {
+            requestAnimationFrame(animateBackground);
+            
+            const time = Date.now() * 0.001;
+            
+            // Animate twinkling stars
+            stars.forEach((star) => {
+                const twinkle = Math.sin(time * star.userData.twinkleSpeed + star.userData.twinkleOffset);
+                star.material.opacity = star.userData.baseOpacity + twinkle * 0.2;
+            });
+            
+            // Animate rainbow road moving toward camera
+            roadSegments.forEach((segment, index) => {
+                segment.position.z += 0.3; // Speed of road movement
+                
+                // Pulse the emissive glow
+                segment.material.emissiveIntensity = 0.3 + Math.sin(time * 2 + index * 0.5) * 0.2;
+                
+                // Reset segment to back when it passes camera
+                if (segment.position.z > 20) {
+                    segment.position.z = -220;
+                }
+            });
+            
+            // Animate rainbow floor tiles
+            rainbowFloorSegments.forEach((tile, index) => {
+                tile.position.z += 0.3; // Move toward camera
+                
+                // Pulse the glow
+                tile.material.emissiveIntensity = 0.4 + Math.sin(time * 2 + index * 0.3) * 0.2;
+                
+                // Reset when it passes camera
+                if (tile.position.z > 20) {
+                    tile.position.z -= 200;
+                }
+            });
+            
+            // Animate barriers
+            barriers.forEach((barrier, index) => {
+                barrier.position.z += 0.3;
+                barrier.material.emissiveIntensity = 0.5 + Math.sin(time * 3 + index * 0.3) * 0.3;
+                
+                if (barrier.position.z > 20) {
+                    barrier.position.z = -220;
+                }
+            });
+            
+            // Pulse the yellow spotlight
+            spotlightCircle.material.opacity = 0.3 + Math.sin(time * 1.5) * 0.1;
+            
+            // Make slot machines always face the camera while bobbing
+            slotMachines.forEach((machine, index) => {
+                // Calculate direction to camera
+                const dx = camera.position.x - machine.position.x;
+                const dz = camera.position.z - machine.position.z;
+                const targetRotation = Math.atan2(dx, dz);
+                
+                // Smoothly rotate to face camera
+                machine.rotation.y = targetRotation;
+                
+                // Bob up and down with different phases for each machine
+                const bobHeight = Math.sin(time + index * 1.5) * 0.4;
+                machine.position.y = bobHeight;
+            });
+            
+            // Gently pulse the accent lights
+            accentLight1.intensity = 2 + Math.sin(time * 2) * 0.5;
+            accentLight2.intensity = 2 + Math.sin(time * 2 + Math.PI) * 0.5;
+            
+            renderer.render(scene, camera);
+        }
+        animateBackground();
+
+        // Mock data
+        function generateMockWallet() {
+            // Generate realistic 42-character wallet address (0x + 40 hex chars)
+            let wallet = '0x';
+            for (let i = 0; i < 40; i++) {
+                wallet += Math.floor(Math.random() * 16).toString(16);
+            }
+            return wallet;
+        }
+
+        function truncateWallet(wallet) {
+            // Format: first 5 chars + .... + last 4 chars
+            if (wallet.length <= 13) return wallet;
+            return wallet.substring(0, 5) + '....' + wallet.substring(wallet.length - 4);
+        }
+
+        function generateMockBuyers() {
+            const buyers = [];
+            for (let i = 0; i < 6; i++) {
+                buyers.push({
+                    wallet: generateMockWallet(),
+                    solAmount: (Math.random() * 10 + 0.1).toFixed(2)
+                });
+            }
+            return buyers;
+        }
+
+        let currentBuyers = generateMockBuyers();
+        let queuedBuyers = []; // Buyers who joined during countdown/spin
+        let timeLeft = 20;
+        let isSpinning = false;
+        let leaderboard = {};
+        let totalRotation = 0;
+        let creatorFeesPool = 0;
+        let payoutTimer = 900; // 15 minutes in seconds
+        let buyerJoinInterval = null;
+        
+        // Audio context for sound effects
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        
+        // Bubble pop sound for new wallet (extremely quiet)
+        function playBubblePopSound() {
+            const osc = audioContext.createOscillator();
+            const gain = audioContext.createGain();
+            
+            osc.connect(gain);
+            gain.connect(audioContext.destination);
+            
+            osc.frequency.setValueAtTime(800, audioContext.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(400, audioContext.currentTime + 0.1);
+            osc.type = 'sine';
+            
+            gain.gain.setValueAtTime(0.015, audioContext.currentTime); // Even quieter
+            gain.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.15);
+            
+            osc.start(audioContext.currentTime);
+            osc.stop(audioContext.currentTime + 0.15);
+        }
+        
+        // Woosh sound when wheel starts spinning (cleaner, lighter)
+        function playWooshSound() {
+            // Smooth sweep down - clean and pleasant
+            const osc = audioContext.createOscillator();
+            const gain = audioContext.createGain();
+            
+            osc.connect(gain);
+            gain.connect(audioContext.destination);
+            
+            osc.frequency.setValueAtTime(600, audioContext.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(120, audioContext.currentTime + 0.6);
+            osc.type = 'sine'; // Smooth, clean sound
+            
+            gain.gain.setValueAtTime(0.015, audioContext.currentTime);
+            gain.gain.linearRampToValueAtTime(0.025, audioContext.currentTime + 0.1);
+            gain.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.6);
+            
+            osc.start(audioContext.currentTime);
+            osc.stop(audioContext.currentTime + 0.6);
+            
+            // Add airy layer for smoothness
+            const air = audioContext.createOscillator();
+            const airGain = audioContext.createGain();
+            air.connect(airGain);
+            airGain.connect(audioContext.destination);
+            
+            air.frequency.setValueAtTime(1200, audioContext.currentTime);
+            air.frequency.exponentialRampToValueAtTime(200, audioContext.currentTime + 0.5);
+            air.type = 'triangle'; // Soft, pleasant
+            
+            airGain.gain.setValueAtTime(0.012, audioContext.currentTime);
+            airGain.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.5);
+            
+            air.start(audioContext.currentTime);
+            air.stop(audioContext.currentTime + 0.5);
+        }
+        
+        // Announcer-style countdown sound (3, 2, 1) - clean and pleasant
+        function playCountdownSound(number) {
+            // Clean tone that rises slightly for emphasis
+            const baseFreq = number === 3 ? 400 : number === 2 ? 450 : 500;
+            
+            // Main clean tone
+            const voice = audioContext.createOscillator();
+            const voiceGain = audioContext.createGain();
+            voice.connect(voiceGain);
+            voiceGain.connect(audioContext.destination);
+            
+            voice.frequency.setValueAtTime(baseFreq, audioContext.currentTime);
+            voice.frequency.linearRampToValueAtTime(baseFreq * 1.1, audioContext.currentTime + 0.15);
+            voice.type = 'sine'; // Clean, smooth sound
+            
+            voiceGain.gain.setValueAtTime(0.018, audioContext.currentTime);
+            voiceGain.gain.linearRampToValueAtTime(0.025, audioContext.currentTime + 0.1);
+            voiceGain.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.4);
+            
+            voice.start(audioContext.currentTime);
+            voice.stop(audioContext.currentTime + 0.4);
+            
+            // Add harmonic layer for fullness (not harsh)
+            const harmonic = audioContext.createOscillator();
+            const harmonicGain = audioContext.createGain();
+            harmonic.connect(harmonicGain);
+            harmonicGain.connect(audioContext.destination);
+            
+            harmonic.frequency.setValueAtTime(baseFreq * 1.5, audioContext.currentTime);
+            harmonic.frequency.linearRampToValueAtTime(baseFreq * 1.65, audioContext.currentTime + 0.15);
+            harmonic.type = 'triangle'; // Soft harmonic
+            
+            harmonicGain.gain.setValueAtTime(0.01, audioContext.currentTime);
+            harmonicGain.gain.linearRampToValueAtTime(0.015, audioContext.currentTime + 0.08);
+            harmonicGain.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.3);
+            
+            harmonic.start(audioContext.currentTime);
+            harmonic.stop(audioContext.currentTime + 0.3);
+            
+            // Gentle impact at the end
+            const impact = audioContext.createOscillator();
+            const impactGain = audioContext.createGain();
+            impact.connect(impactGain);
+            impactGain.connect(audioContext.destination);
+            
+            impact.frequency.setValueAtTime(200, audioContext.currentTime + 0.35);
+            impact.frequency.exponentialRampToValueAtTime(100, audioContext.currentTime + 0.5);
+            impact.type = 'sine'; // Soft impact
+            
+            impactGain.gain.setValueAtTime(0.02, audioContext.currentTime + 0.35);
+            impactGain.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.5);
+            
+            impact.start(audioContext.currentTime + 0.35);
+            impact.stop(audioContext.currentTime + 0.5);
+        }
+        
+        // Cash register sound (quieter, more realistic)
+        function playCashSound() {
+            // Cash register "cha-ching" with drawer opening
+            const osc1 = audioContext.createOscillator();
+            const gain1 = audioContext.createGain();
+            osc1.connect(gain1);
+            gain1.connect(audioContext.destination);
+            
+            osc1.frequency.value = 1000;
+            osc1.type = 'sine';
+            gain1.gain.setValueAtTime(0.12, audioContext.currentTime);
+            gain1.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.2);
+            
+            osc1.start(audioContext.currentTime);
+            osc1.stop(audioContext.currentTime + 0.2);
+            
+            // Second "ching"
+            const osc2 = audioContext.createOscillator();
+            const gain2 = audioContext.createGain();
+            osc2.connect(gain2);
+            gain2.connect(audioContext.destination);
+            
+            osc2.frequency.value = 1400;
+            osc2.type = 'sine';
+            gain2.gain.setValueAtTime(0.1, audioContext.currentTime + 0.08);
+            gain2.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.3);
+            
+            osc2.start(audioContext.currentTime + 0.08);
+            osc2.stop(audioContext.currentTime + 0.3);
+            
+            // Cash drawer slide (noise)
+            for (let i = 0; i < 5; i++) {
+                const noiseOsc = audioContext.createOscillator();
+                const noiseGain = audioContext.createGain();
+                noiseOsc.connect(noiseGain);
+                noiseGain.connect(audioContext.destination);
+                
+                noiseOsc.frequency.value = 80 + (i * 15);
+                noiseOsc.type = 'square';
+                noiseGain.gain.setValueAtTime(0.02, audioContext.currentTime + 0.15 + (i * 0.02));
+                noiseGain.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.25 + (i * 0.02));
+                
+                noiseOsc.start(audioContext.currentTime + 0.15 + (i * 0.02));
+                noiseOsc.stop(audioContext.currentTime + 0.25 + (i * 0.02));
+            }
+            
+            // Coins falling (bright metallic)
+            for (let i = 0; i < 4; i++) {
+                const coinOsc = audioContext.createOscillator();
+                const coinGain = audioContext.createGain();
+                coinOsc.connect(coinGain);
+                coinGain.connect(audioContext.destination);
+                
+                coinOsc.frequency.value = 2500 + (Math.random() * 500);
+                coinOsc.type = 'sine';
+                coinGain.gain.setValueAtTime(0.06, audioContext.currentTime + 0.2 + (i * 0.08));
+                coinGain.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.35 + (i * 0.08));
+                
+                coinOsc.start(audioContext.currentTime + 0.2 + (i * 0.08));
+                coinOsc.stop(audioContext.currentTime + 0.35 + (i * 0.08));
+            }
+        }
+
+        const rainbowWheelColors = [
+            '#ff0000', // Red
+            '#ff7700', // Orange  
+            '#ffff00', // Yellow
+            '#00ff00', // Green
+            '#0088ff', // Blue
+            '#8800ff', // Purple
+            '#ff00ff'  // Magenta
+        ];
+
+        function calculatePercentages(buyers) {
+            const total = buyers.reduce((sum, b) => sum + parseFloat(b.solAmount), 0);
+            return buyers.map(b => ({
+                ...b,
+                percentage: ((parseFloat(b.solAmount) / total) * 100).toFixed(1)
+            }));
+        }
+
+        function renderWheel(buyers, newBuyerIndex = -1) {
+            const wheel = document.getElementById('wheel');
+            wheel.innerHTML = '';
+            
+            const buyersWithPercentages = calculatePercentages(buyers);
+            const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+            svg.setAttribute('viewBox', '0 0 400 400');
+            
+            // Add filter for glow effect
+            const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+            
+            // Regular glow filter
+            const filter = document.createElementNS('http://www.w3.org/2000/svg', 'filter');
+            filter.setAttribute('id', 'glow');
+            filter.innerHTML = `
+                <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+                <feMerge>
+                    <feMergeNode in="coloredBlur"/>
+                    <feMergeNode in="SourceGraphic"/>
+                </feMerge>
+            `;
+            defs.appendChild(filter);
+            
+            // Strong glow filter for new segments
+            const strongGlow = document.createElementNS('http://www.w3.org/2000/svg', 'filter');
+            strongGlow.setAttribute('id', 'strongGlow');
+            strongGlow.innerHTML = `
+                <feGaussianBlur stdDeviation="6" result="coloredBlur"/>
+                <feMerge>
+                    <feMergeNode in="coloredBlur"/>
+                    <feMergeNode in="coloredBlur"/>
+                    <feMergeNode in="SourceGraphic"/>
+                </feMerge>
+            `;
+            defs.appendChild(strongGlow);
+            
+            svg.appendChild(defs);
+            
+            let currentAngle = 0;
+            const usedColors = []; // Track actual color assignments
+            
+            buyersWithPercentages.forEach((buyer, index) => {
+                const segmentAngle = (parseFloat(buyer.percentage) / 100) * 360;
+                const startAngle = currentAngle - 90;
+                const endAngle = startAngle + segmentAngle;
+                
+                const x1 = 200 + 200 * Math.cos(startAngle * Math.PI / 180);
+                const y1 = 200 + 200 * Math.sin(startAngle * Math.PI / 180);
+                const x2 = 200 + 200 * Math.cos(endAngle * Math.PI / 180);
+                const y2 = 200 + 200 * Math.sin(endAngle * Math.PI / 180);
+                
+                const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                path.setAttribute('d', `M 200 200 L ${x1} ${y1} A 200 200 0 ${segmentAngle > 180 ? 1 : 0} 1 ${x2} ${y2} Z`);
+                
+                // Smart color selection - NEVER same as previous
+                let selectedColor;
+                if (index === 0) {
+                    selectedColor = rainbowWheelColors[0];
+                    usedColors.push(0);
+                } else {
+                    const previousColorIndex = usedColors[index - 1];
+                    let nextColorIndex = (previousColorIndex + 1) % rainbowWheelColors.length;
+                    
+                    // Ensure it's different from previous
+                    while (nextColorIndex === previousColorIndex) {
+                        nextColorIndex = (nextColorIndex + 1) % rainbowWheelColors.length;
+                    }
+                    
+                    selectedColor = rainbowWheelColors[nextColorIndex];
+                    usedColors.push(nextColorIndex);
+                }
+                
+                path.setAttribute('fill', selectedColor);
+                
+                // Dynamic stroke width - thinner when there are many wallets
+                const strokeWidth = buyersWithPercentages.length > 20 ? '1' : '4';
+                path.setAttribute('stroke', '#1a1a2a');
+                path.setAttribute('stroke-width', strokeWidth);
+                path.setAttribute('filter', 'url(#glow)');
+                
+                // Add pop animation to new segment with width growth
+                if (index === newBuyerIndex) {
+                    const group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+                    group.classList.add('new-segment');
+                    
+                    // Add a colored glow filter specifically for this slice
+                    const colorHex = selectedColor.replace('#', '');
+                    const r = parseInt(colorHex.substr(0, 2), 16);
+                    const g = parseInt(colorHex.substr(2, 2), 16);
+                    const b = parseInt(colorHex.substr(4, 2), 16);
+                    
+                    // Create INTENSE but CONTAINED colored glow filter
+                    const glowFilter = document.createElementNS('http://www.w3.org/2000/svg', 'filter');
+                    const filterId = `colorGlow${index}`;
+                    glowFilter.setAttribute('id', filterId);
+                    glowFilter.innerHTML = `
+                        <feGaussianBlur stdDeviation="8" result="coloredBlur"/>
+                        <feFlood flood-color="${selectedColor}" flood-opacity="1"/>
+                        <feComposite in2="coloredBlur" operator="in"/>
+                        <feMerge>
+                            <feMergeNode/>
+                            <feMergeNode/>
+                            <feMergeNode in="SourceGraphic"/>
+                        </feMerge>
+                    `;
+                    defs.appendChild(glowFilter);
+                    
+                    // Create a glow layer that will fade out
+                    const glowLayer = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                    glowLayer.setAttribute('d', `M 200 200 L ${x1} ${y1} A 200 200 0 ${segmentAngle > 180 ? 1 : 0} 1 ${x2} ${y2} Z`);
+                    glowLayer.setAttribute('fill', selectedColor);
+                    glowLayer.setAttribute('stroke', 'none');
+                    glowLayer.setAttribute('filter', `url(#${filterId})`);
+                    glowLayer.classList.add('glow-layer');
+                    
+                    // Main slice stays solid - no stroke during animation
+                    const strokeWidth = buyersWithPercentages.length > 20 ? '1' : '4';
+                    path.setAttribute('stroke', 'none');
+                    
+                    // Animate the slice width by animating the end angle
+                    const animateSliceWidth = () => {
+                        const duration = 400; // milliseconds
+                        const startTime = performance.now();
+                        const initialAngle = startAngle;
+                        
+                        const animate = (currentTime) => {
+                            const elapsed = currentTime - startTime;
+                            const progress = Math.min(elapsed / duration, 1);
+                            // Ease out cubic for smooth deceleration
+                            const eased = 1 - Math.pow(1 - progress, 3);
+                            
+                            const currentEndAngle = initialAngle + (segmentAngle * eased);
+                            const cx2 = 200 + 200 * Math.cos(currentEndAngle * Math.PI / 180);
+                            const cy2 = 200 + 200 * Math.sin(currentEndAngle * Math.PI / 180);
+                            
+                            const currentSegAngle = segmentAngle * eased;
+                            const currentPath = `M 200 200 L ${x1} ${y1} A 200 200 0 ${currentSegAngle > 180 ? 1 : 0} 1 ${cx2} ${cy2} Z`;
+                            path.setAttribute('d', currentPath);
+                            glowLayer.setAttribute('d', currentPath);
+                            
+                            if (progress < 1) {
+                                requestAnimationFrame(animate);
+                            } else {
+                                // Fade out only the glow layer
+                                glowLayer.style.transition = 'opacity 0.3s ease-out';
+                                glowLayer.style.opacity = '0';
+                                
+                                // After fade completes, restore normal state
+                                setTimeout(() => {
+                                    path.setAttribute('stroke', '#1a1a2a');
+                                    path.setAttribute('stroke-width', strokeWidth);
+                                    glowLayer.remove(); // Remove glow layer
+                                }, 300);
+                            }
+                        };
+                        
+                        requestAnimationFrame(animate);
+                    };
+                    
+                    group.appendChild(path);
+                    group.appendChild(glowLayer);
+                    svg.appendChild(group);
+                    
+                    // Start the width animation immediately
+                    animateSliceWidth();
+                } else {
+                    svg.appendChild(path);
+                }
+                
+                currentAngle += segmentAngle;
+            });
+            
+            wheel.appendChild(svg);
+        }
+
+        function renderParticipants(buyers, newBuyerIndex = -1) {
+            const container = document.getElementById('participants');
+            const buyersWithPercentages = calculatePercentages(buyers);
+            
+            // Sort by percentage - highest first
+            const sortedBuyers = [...buyersWithPercentages].sort((a, b) => 
+                parseFloat(b.percentage) - parseFloat(a.percentage)
+            );
+            
+            // Assign colors to match wheel slices
+            let lastColorIndex = -1;
+            const buyersWithColors = sortedBuyers.map((buyer, index) => {
+                let colorIndex;
+                if (index === 0) {
+                    colorIndex = 0;
+                } else {
+                    colorIndex = (lastColorIndex + 1) % rainbowWheelColors.length;
+                }
+                lastColorIndex = colorIndex;
+                return {
+                    ...buyer,
+                    borderColor: rainbowWheelColors[colorIndex]
+                };
+            });
+            
+            // Show first 20 wallets (2 rows of 10)
+            const displayedBuyers = buyersWithColors.slice(0, 20);
+            const additionalBuyers = buyersWithColors.slice(20);
+            
+            // Find if the new buyer is in the displayed list
+            let displayNewIndex = -1;
+            if (newBuyerIndex !== -1) {
+                const newBuyerWallet = buyers[newBuyerIndex].wallet;
+                displayNewIndex = displayedBuyers.findIndex(b => b.wallet === newBuyerWallet);
+            }
+            
+            container.innerHTML = displayedBuyers.map((buyer, index) => `
+                <div class="participant ${index === displayNewIndex ? 'new-entry' : ''}" style="border-color: ${buyer.borderColor}; box-shadow: 0 0 15px ${buyer.borderColor};">
+                    <div class="participant-wallet">${truncateWallet(buyer.wallet)}</div>
+                    <div class="participant-amount">${buyer.solAmount} SOL</div>
+                    <div class="participant-chance">${buyer.percentage}%</div>
+                </div>
+            `).join('');
+            
+            // Add additional players box if there are more than 20
+            if (additionalBuyers.length > 0) {
+                const totalAdditionalSOL = additionalBuyers.reduce((sum, b) => 
+                    sum + parseFloat(b.solAmount), 0
+                ).toFixed(2);
+                
+                const additionalBox = document.createElement('div');
+                additionalBox.className = 'additional-players';
+                additionalBox.innerHTML = `
+                    <div class="additional-players-title">Additional Players</div>
+                    <div class="additional-players-count">+${additionalBuyers.length}</div>
+                    <div class="additional-players-amount">${totalAdditionalSOL} SOL</div>
+                `;
+                container.appendChild(additionalBox);
+            }
+        }
+
+        function renderLeaderboard() {
+            const list = document.getElementById('leaderboard-list');
+            const sorted = Object.entries(leaderboard).sort((a, b) => b[1] - a[1]).slice(0, 5);
+            list.innerHTML = sorted.map(([wallet, wins], index) => `
+                <div class="leaderboard-item">
+                    <div class="leaderboard-rank">#${index + 1}</div>
+                    <div class="leaderboard-wallet">${truncateWallet(wallet)}</div>
+                    <div class="leaderboard-wins">${wins}</div>
+                </div>
+            `).join('');
+        }
+
+        function selectWinner(buyers) {
+            const buyersWithPercentages = calculatePercentages(buyers);
+            const random = Math.random() * 100;
+            let cumulative = 0;
+            for (let buyer of buyersWithPercentages) {
+                cumulative += parseFloat(buyer.percentage);
+                if (random <= cumulative) return buyer;
+            }
+            return buyersWithPercentages[0];
+        }
+
+        function showWinner(winner) {
+            const announcement = document.getElementById('winner-announcement');
+            document.getElementById('winner-wallet').textContent = truncateWallet(winner.wallet);
+            document.getElementById('winner-percentage').textContent = winner.percentage + '%';
+            announcement.classList.add('show');
+            
+            leaderboard[winner.wallet] = (leaderboard[winner.wallet] || 0) + 1;
+            renderLeaderboard();
+            
+            setTimeout(() => announcement.classList.remove('show'), 3000);
+        }
+
+        // Animate all pie slices shrinking to nothing
+        function animateSlicesShrink() {
+            return new Promise((resolve) => {
+                const svg = document.querySelector('#wheel svg');
+                if (!svg) {
+                    resolve();
+                    return;
+                }
+                
+                const paths = svg.querySelectorAll('path');
+                if (paths.length === 0) {
+                    resolve();
+                    return;
+                }
+                
+                const duration = 500; // milliseconds
+                const startTime = performance.now();
+                
+                // Store original path data for each slice
+                const originalPaths = Array.from(paths).map(path => ({
+                    element: path,
+                    d: path.getAttribute('d')
+                }));
+                
+                const animate = (currentTime) => {
+                    const elapsed = currentTime - startTime;
+                    const progress = Math.min(elapsed / duration, 1);
+                    // Ease in cubic for smooth acceleration into nothing
+                    const eased = 1 - Math.pow(1 - progress, 3);
+                    const reverseProgress = 1 - eased;
+                    
+                    originalPaths.forEach(({element, d}) => {
+                        // Parse the path to extract the arc parameters
+                        const pathMatch = d.match(/M 200 200 L ([\d.]+) ([\d.]+) A 200 200 0 (\d) 1 ([\d.]+) ([\d.]+) Z/);
+                        if (pathMatch) {
+                            const x1 = parseFloat(pathMatch[1]);
+                            const y1 = parseFloat(pathMatch[2]);
+                            const largeArc = pathMatch[3];
+                            const x2 = parseFloat(pathMatch[4]);
+                            const y2 = parseFloat(pathMatch[5]);
+                            
+                            // Calculate the angle of the slice
+                            const angle1 = Math.atan2(y1 - 200, x1 - 200);
+                            const angle2 = Math.atan2(y2 - 200, x2 - 200);
+                            let angleDiff = angle2 - angle1;
+                            if (angleDiff < 0) angleDiff += Math.PI * 2;
+                            
+                            // Shrink the angle towards nothing
+                            const newAngleDiff = angleDiff * reverseProgress;
+                            const newAngle2 = angle1 + newAngleDiff;
+                            
+                            const newX2 = 200 + 200 * Math.cos(newAngle2);
+                            const newY2 = 200 + 200 * Math.sin(newAngle2);
+                            
+                            // Determine if we still need large arc flag
+                            const newLargeArc = (newAngleDiff > Math.PI) ? '1' : '0';
+                            
+                            element.setAttribute('d', `M 200 200 L ${x1} ${y1} A 200 200 0 ${newLargeArc} 1 ${newX2} ${newY2} Z`);
+                            
+                            // Fade out as well
+                            element.style.opacity = reverseProgress;
+                        }
+                    });
+                    
+                    if (progress < 1) {
+                        requestAnimationFrame(animate);
+                    } else {
+                        resolve();
+                    }
+                };
+                
+                requestAnimationFrame(animate);
+            });
+        }
+
+        async function spinWheel() {
+            if (currentBuyers.length === 0) return;
+            
+            isSpinning = true;
+            const status = document.getElementById('status');
+            const wheel = document.getElementById('wheel');
+            const wheelContainer = document.querySelector('.wheel-container');
+            const participants = document.querySelector('.participants');
+            const leaderboard = document.querySelector('.leaderboard');
+            
+            const frozenBuyers = [...currentBuyers];
+            
+            // NO SMALL COUNTDOWN - just show spinning
+            status.textContent = 'SPINNING...';
+            
+            const winner = selectWinner(frozenBuyers);
+            const winnerIndex = frozenBuyers.findIndex(b => b.wallet === winner.wallet);
+            const buyersWithPercentages = calculatePercentages(frozenBuyers);
+            
+            let targetAngle = 0;
+            for (let i = 0; i < winnerIndex; i++) {
+                targetAngle += (parseFloat(buyersWithPercentages[i].percentage) / 100) * 360;
+            }
+            targetAngle += ((parseFloat(buyersWithPercentages[winnerIndex].percentage) / 100) * 360) / 2;
+            
+            const newTotalRotation = totalRotation + 720 + (360 - targetAngle);
+            wheel.style.transform = `rotate(${newTotalRotation}deg)`;
+            totalRotation = newTotalRotation;
+            
+            // Play woosh sound when spin starts
+            playWooshSound();
+            
+            await new Promise(resolve => setTimeout(resolve, 4000));
+            
+            // Play cash sound when winner is shown
+            playCashSound();
+            showWinner(winner);
+            await new Promise(resolve => setTimeout(resolve, 3000));
+            
+            // Animate all slices shrinking back to nothing
+            await animateSlicesShrink();
+            
+            // Smoothly scale down the wheel
+            wheelContainer.classList.remove('spinning');
+            
+            // Wait for the smooth scale transition
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            // Now clear and reset everything
+            currentBuyers = [];
+            wheel.style.transform = 'rotate(0deg)';
+            totalRotation = 0;
+            renderWheel(currentBuyers);
+            renderParticipants(currentBuyers);
+            
+            participants.classList.remove('faded');
+            leaderboard.classList.remove('faded');
+            status.textContent = 'COLLECTING ENTRIES...';
+            
+            isSpinning = false;
+            
+            // Small delay before starting new round
+            await new Promise(resolve => setTimeout(resolve, 300));
+            
+            // Animate queued buyers joining one by one
+            const queuedToJoin = [...queuedBuyers];
+            queuedBuyers = []; // Clear the queue
+            
+            if (queuedToJoin.length > 0) {
+                let joinIndex = 0;
+                const joinInterval = setInterval(() => {
+                    if (joinIndex < queuedToJoin.length) {
+                        currentBuyers.push(queuedToJoin[joinIndex]);
+                        const newIndex = currentBuyers.length - 1;
+                        
+                        // Play bubble pop sound
+                        playBubblePopSound();
+                        
+                        // Animate each buyer joining
+                        renderWheel(currentBuyers, newIndex);
+                        renderParticipants(currentBuyers, newIndex);
+                        
+                        joinIndex++;
+                    } else {
+                        clearInterval(joinInterval);
+                    }
+                }, 400); // 400ms between each buyer joining (matches animation duration)
+            }
+            
+            // Resume accepting new buyers (they'll join on top of queued ones)
+            if (buyerJoinInterval) clearInterval(buyerJoinInterval);
+            buyerJoinInterval = setInterval(simulateNewBuyer, 2000);
+        }
+
+        // Simulate new buyers joining periodically
+        function simulateNewBuyer() {
+            if (Math.random() > 0.4) { // 60% chance to get a new buyer
+                const newBuyer = {
+                    wallet: generateMockWallet(),
+                    solAmount: (Math.random() * 10 + 0.1).toFixed(2)
+                };
+                
+                // If we're in countdown or spinning, queue the buyer for next round
+                if (isSpinning || timeLeft <= 3) {
+                    queuedBuyers.push(newBuyer);
+                } 
+                // Otherwise add them immediately if there's room (up to 50 max)
+                else if (currentBuyers.length < 50) {
+                    currentBuyers.push(newBuyer);
+                    const newIndex = currentBuyers.length - 1;
+                    
+                    // Play bubble pop sound
+                    playBubblePopSound();
+                    
+                    // Re-render with animation
+                    renderWheel(currentBuyers, newIndex);
+                    renderParticipants(currentBuyers, newIndex);
+                }
+            }
+        }
+
+        function updateTimer() {
+            const timerEl = document.getElementById('timer');
+            const status = document.getElementById('status');
+            const payoutEl = document.getElementById('payout-timer');
+            
+            // Update payout timer countdown
+            if (payoutTimer > 0) {
+                payoutTimer--;
+                const minutes = Math.floor(payoutTimer / 60);
+                const seconds = payoutTimer % 60;
+                payoutEl.textContent = `PAYOUT IN: ${minutes}:${seconds.toString().padStart(2, '0')}`;
+            } else {
+                payoutEl.textContent = 'PAYOUT NOW!';
+                // Reset to 15 minutes after payout
+                payoutTimer = 900;
+            }
+            
+            if (!isSpinning) {
+                timerEl.textContent = `NEXT SPIN: ${timeLeft}s`;
+                
+                if (timeLeft === 3) {
+                    // BIG YELLOW 3 IN CENTER
+                    status.innerHTML = '<div class="countdown-center num3">3</div>';
+                    playCountdownSound(3);
+                    const wheelContainer = document.querySelector('.wheel-container');
+                    wheelContainer.classList.add('spinning');
+                    document.querySelector('.participants').classList.add('faded');
+                    document.querySelector('.leaderboard').classList.add('faded');
+                    
+                    // Keep interval running so buyers get queued during countdown
+                    // The simulateNewBuyer function will handle queueing
+                } else if (timeLeft === 2) {
+                    // BIG YELLOW-GREEN 2 IN CENTER
+                    status.innerHTML = '<div class="countdown-center num2">2</div>';
+                    playCountdownSound(2);
+                } else if (timeLeft === 1) {
+                    // BIG GREEN 1 IN CENTER
+                    status.innerHTML = '<div class="countdown-center num1">1</div>';
+                    playCountdownSound(1);
+                } else if (timeLeft > 3) {
+                    status.textContent = 'COLLECTING ENTRIES...';
+                }
+                
+                if (timeLeft === 0) {
+                    spinWheel();
+                    timeLeft = 20;
+                } else {
+                    timeLeft--;
+                }
+            }
+        }
+
+        renderWheel(currentBuyers);
+        renderParticipants(currentBuyers);
+        renderLeaderboard();
+        setInterval(updateTimer, 1000);
+        
+        // Comment out simulation when using live data
+        // buyerJoinInterval = setInterval(simulateNewBuyer, 2000);
+    </script>
+
+    <!-- Socket.io for real-time connection -->
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <script>
+        // Backend connection
+        const BACKEND_URL = 'http://localhost:3000'; // Change to your server URL in production
+        let socket = null;
+        let isLiveConnected = false;
+
+        // Connect button handler
+        document.getElementById('connect-btn').addEventListener('click', async () => {
+            const contractInput = document.getElementById('contract-input');
+            const tokenAddress = contractInput.value.trim();
+            const connectBtn = document.getElementById('connect-btn');
+            const statusEl = document.getElementById('connection-status');
+            
+            if (!tokenAddress) {
+                statusEl.textContent = '⚠️ Please enter a token address';
+                statusEl.className = 'connection-status error';
+                return;
+            }
+            
+            // Validate basic format
+            if (tokenAddress.length < 32 || tokenAddress.length > 44) {
+                statusEl.textContent = '❌ Invalid address format';
+                statusEl.className = 'connection-status error';
+                return;
+            }
+            
+            try {
+                connectBtn.disabled = true;
+                connectBtn.textContent = 'CONNECTING...';
+                statusEl.textContent = '🔄 Connecting to pump.fun...';
+                statusEl.className = 'connection-status';
+                
+                // Connect to backend
+                const response = await fetch(`${BACKEND_URL}/connect`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ tokenAddress })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    statusEl.textContent = `✅ Connected! ${data.tokenInfo.name} (${data.tokenInfo.symbol})`;
+                    statusEl.className = 'connection-status connected';
+                    connectBtn.textContent = 'CONNECTED ✓';
+                    
+                    // Hide the input container after successful connection
+                    setTimeout(() => {
+                        document.getElementById('contract-container').classList.add('hidden');
+                    }, 2000);
+                    
+                    // Initialize Socket.io connection
+                    initializeSocketConnection();
+                    
+                    console.log('✅ Connected to token:', data.tokenInfo);
+                } else {
+                    throw new Error(data.error || 'Connection failed');
+                }
+                
+            } catch (error) {
+                console.error('Connection error:', error);
+                statusEl.textContent = `❌ Error: ${error.message}`;
+                statusEl.className = 'connection-status error';
+                connectBtn.disabled = false;
+                connectBtn.textContent = 'RETRY CONNECTION';
+            }
+        });
+        
+        // Initialize Socket.io connection
+        function initializeSocketConnection() {
+            if (socket) return; // Already connected
+            
+            socket = io(BACKEND_URL);
+            
+            socket.on('connect', () => {
+                console.log('✅ Connected to backend');
+                isLiveConnected = true;
+            });
+            
+            socket.on('disconnect', () => {
+                console.log('⚠️ Disconnected from backend');
+                isLiveConnected = false;
+            });
+            
+            // Receive new buyers from pump.fun
+            socket.on('newBuyer', (buyer) => {
+                console.log('🟢 New buy from pump.fun:', buyer);
+                
+                // Add to game (only during collection period)
+                if (!isSpinning && timeLeft > 3 && currentBuyers.length < 50) {
+                    currentBuyers.push(buyer);
+                    const newIndex = currentBuyers.length - 1;
+                    
+                    playBubblePopSound();
+                    renderWheel(currentBuyers, newIndex);
+                    renderParticipants(currentBuyers, newIndex);
+                } else {
+                    queuedBuyers.push(buyer);
+                    console.log('⏳ Buyer queued for next round');
+                }
+            });
+            
+            // Update prize pool
+            socket.on('prizePoolUpdate', (data) => {
+                creatorFeesPool = data.amount;
+                document.getElementById('pool-amount').textContent = 
+                    creatorFeesPool.toFixed(4) + ' SOL';
+                console.log('💰 Prize pool updated:', creatorFeesPool.toFixed(4), 'SOL');
+            });
+            
+            // Connection status updates
+            socket.on('connectionStatus', (data) => {
+                const statusEl = document.getElementById('connection-status');
+                statusEl.textContent = data.message;
+                statusEl.className = `connection-status ${data.status}`;
+            });
+        }
+        
+        // Allow Enter key to connect
+        document.getElementById('contract-input').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                document.getElementById('connect-btn').click();
+            }
+        });
+    </script>
+</body>
+</html>
